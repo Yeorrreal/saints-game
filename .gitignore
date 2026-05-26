@@ -1,0 +1,15 @@
+# macOS
+.DS_Store
+**/.DS_Store
+
+# 개인 작업 노트 (공개 레포에서 제외)
+Notes/
+
+# 에디터
+.vscode/
+.idea/
+
+# 임시
+*.tmp
+*.bak
+*~
