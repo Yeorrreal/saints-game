@@ -3,7 +3,7 @@
 > *Iconographia* — 중세 도상학(iconography) 게임
 > 옷·머리·지물(attribute)을 마네킹에 입혀, 그 조합이 어떤 성인을 가리키는지 발견하세요.
 
-🔗 **플레이하기**: [yjrosie.github.io/saints-game](https://yjrosie.github.io/saints-game/)
+🔗 **플레이하기**: [yeorrreal.github.io/saints-game](https://yeorrreal.github.io/saints-game/)
 
 ---
 
