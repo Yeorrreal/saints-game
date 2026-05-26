@@ -599,6 +599,133 @@ html, body {
 .dev-hud.open { display: block; }
 .dev-hud strong { color: #e8c96a; }
 .dev-hud kbd { background: rgba(255,255,255,.14); padding: 1px 5px; border-radius: 3px; font-size: 10px; }
+
+/* ══════════════════════════════════════
+   MOBILE — saints panel as overlay drawer,
+   items as wrap grid, mannequin on top
+   ══════════════════════════════════════ */
+
+/* hidden by default — only appears on mobile */
+.hud-btn-saints { display: none; }
+.saints-close   { display: none; }
+
+/* backdrop for drawer */
+.saints-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(8,4,1,.55);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  z-index: 90;
+  opacity: 0; pointer-events: none;
+  transition: opacity .25s ease;
+}
+.saints-backdrop.open {
+  opacity: 1; pointer-events: auto;
+}
+
+@media (max-width: 900px) {
+  /* HUD: hide title + separators, compact buttons */
+  .hud-title, .hud-sep { display: none; }
+  .hud { padding: 8px 10px; gap: 6px; flex-wrap: wrap; }
+  .hud-btn {
+    padding: 5px 10px; font-size: 10.5px; letter-spacing: .03em;
+  }
+  .hud-count {
+    font-size: 11px; padding: 4px 8px;
+    background: rgba(245,237,216,.06);
+    border-radius: 12px; flex-shrink: 0;
+  }
+  .hud-btn-saints {
+    display: inline-flex; align-items: center; gap: 4px;
+    margin-left: auto;
+    background: rgba(220,180,60,.18);
+    border-color: rgba(220,180,60,.55);
+    color: #f5edd8;
+  }
+  .hud-btn-saints:hover {
+    background: rgba(220,180,60,.28);
+  }
+
+  /* Canvas: single column. HUD | mannequin (large) | items (wrap) */
+  .game-canvas {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto;
+  }
+  .mannequin-zone {
+    grid-column: 1; grid-row: 2;
+    min-height: 50vh;
+  }
+  .items-zone {
+    grid-column: 1; grid-row: 3;
+    display: flex; flex-wrap: wrap;
+    gap: 6px; padding: 10px 8px;
+    align-content: flex-start;
+    justify-content: center;
+    background: rgba(20,15,10,.5);
+    border-top: 1px solid rgba(220,180,60,.2);
+    max-height: 38vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .items-zone::-webkit-scrollbar { height: 3px; width: 3px; }
+  .items-zone::-webkit-scrollbar-thumb { background: rgba(220,180,60,.3); border-radius: 2px; }
+
+  /* Items: drop absolute positioning, equalize size, no rotation */
+  .scatter-item {
+    position: relative !important;
+    left: auto !important; top: auto !important;
+    width: 78px !important;
+    transform: none !important;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    min-height: 78px;
+  }
+  .scatter-item img {
+    max-height: 78px; width: auto; max-width: 100%;
+    object-fit: contain;
+  }
+  .scatter-item:hover {
+    transform: scale(1.06) !important;
+  }
+  /* tooltip awkward on touch — hide */
+  .item-tooltip { display: none; }
+
+  /* Saints panel: fixed overlay drawer from right */
+  .saints-panel {
+    position: fixed;
+    top: 0; right: 0; bottom: 0;
+    width: min(320px, 86vw);
+    grid-column: unset; grid-row: unset;
+    z-index: 100;
+    transform: translateX(100%);
+    transition: transform .3s cubic-bezier(.4,0,.2,1);
+    box-shadow: -8px 0 28px rgba(0,0,0,.5);
+    border-left: 1px solid rgba(220,180,60,.35);
+  }
+  .saints-panel.open {
+    transform: translateX(0);
+  }
+  .saints-panel-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 12px 10px 18px;
+  }
+  .saints-close {
+    display: block;
+    background: transparent; border: none;
+    color: rgba(245,237,216,.6);
+    font-size: 24px; line-height: 1;
+    cursor: pointer; padding: 0 6px;
+    transition: color .15s;
+  }
+  .saints-close:hover { color: #f5edd8; }
+}
+
+/* very narrow phones (< 380px) — further compact */
+@media (max-width: 380px) {
+  .hud-btn { padding: 4px 8px; font-size: 10px; }
+  .scatter-item { width: 68px !important; min-height: 68px; }
+  .scatter-item img { max-height: 68px; }
+}
 </style>
 </head>
 <body>
@@ -654,6 +781,7 @@ html, body {
       <div class="hud-sep"></div>
       <button class="hud-btn" id="reset-btn">전체 초기화</button>
       <button class="hud-btn" id="undress-btn">옷 벗기</button>
+      <button class="hud-btn hud-btn-saints" id="saints-toggle" aria-label="성인 명단 열기">📜 명단</button>
     </div>
 
     <!-- LEFT: Mannequin -->
@@ -666,9 +794,15 @@ html, body {
     <!-- CENTER: Scatter items -->
     <div class="items-zone" id="items-zone"></div>
 
+    <!-- Backdrop (mobile drawer) -->
+    <div class="saints-backdrop" id="saints-backdrop"></div>
+
     <!-- RIGHT: Saints panel -->
-    <div class="saints-panel">
-      <div class="saints-panel-header">성인 명단</div>
+    <div class="saints-panel" id="saints-panel">
+      <div class="saints-panel-header">
+        <span>성인 명단</span>
+        <button class="saints-close" id="saints-close" aria-label="닫기">×</button>
+      </div>
       <div class="saints-panel-progress" id="panel-progress">
         <span id="panel-found">0</span> / <span id="panel-total">8</span> 발견
       </div>
@@ -1153,6 +1287,19 @@ document.getElementById('undress-btn').addEventListener('click', () => {
     if (ITEMS.find(i => i.id === id)?.category === '의상') removeLayer(id);
   });
   renderScatter();
+});
+
+/* ── Mobile saints panel drawer ── */
+const saintsPanelEl    = document.getElementById('saints-panel');
+const saintsBackdropEl = document.getElementById('saints-backdrop');
+function openSaints()  { saintsPanelEl.classList.add('open');    saintsBackdropEl.classList.add('open'); }
+function closeSaints() { saintsPanelEl.classList.remove('open'); saintsBackdropEl.classList.remove('open'); }
+document.getElementById('saints-toggle').addEventListener('click', openSaints);
+document.getElementById('saints-close' ).addEventListener('click', closeSaints);
+saintsBackdropEl.addEventListener('click', closeSaints);
+/* close drawer when window grows past mobile breakpoint */
+window.addEventListener('resize', () => {
+  if (window.innerWidth > 900) closeSaints();
 });
 
 /* ── Stage scale ── */
